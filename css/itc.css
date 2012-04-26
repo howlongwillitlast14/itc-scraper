@@ -1,0 +1,151 @@
+@charset "utf-8";
+body,div,dl,dt,dd,ul,ol,li,h1,h2,h3,h4,h5,h6,pre,form,fieldset,input,textarea,blockquote,p,fieldset {
+	margin:0;
+	padding:0;
+}
+:focus {
+	outline: 0;
+}
+body {
+	line-height: 1;
+	color: black;
+	background: white;
+}
+ol, ul {
+	list-style: none;
+	margin: 0;
+	padding: 0;
+}
+caption, th, td {
+	text-align: left;
+	font-weight: normal;
+}
+h1, h2, h3, h4, h5, h6, p, small {
+	margin: 0;
+	padding: 0;
+}
+h1, h2, h3, h4, h5, h6 {
+	font-weight:bold;
+	letter-spacing:-0.05em;
+	font-family:Arial;
+}
+a img {border: none; }
+
+body, #page {
+	font-family: Arial;
+	font-size: 12px;
+	color: #444;
+	line-height: 20px;
+}
+
+p {
+	padding-bottom: 10px;
+}
+
+blockquote {
+	display: block;
+	margin-left: 20px;
+	border-left: solid 5px #ddd;
+	padding-left: 10px;
+	font-family: Georgia;
+	font-size: 12px;
+	font-style: italic;
+	color: #777;
+	margin-bottom: 10px;
+}
+
+a {
+	color: #337295;
+	text-decoration: none;
+}
+
+strong {
+	font-weight: bold;
+}
+
+em {
+	font-style: italic;
+	border-bottom: dotted 1px #ccc;
+}
+
+.fixed, .clear {
+	clear:both;
+}
+
+
+.apps {
+  padding:8px;
+  width:600px;
+}
+.app_frame {
+  margin-bottom:16px;
+  padding:8px;
+}
+.app_icon {
+  width:85px;
+  height: 85px;
+  display:block;
+  float: left;
+}
+.app_meta {
+  margin-left:16px;
+  float: left;
+  width:400px;
+}
+.app_name {
+  font-size:16px;
+  font-weight: bold;
+  border-bottom:2px solid #aaa;
+  margin-bottom:4px;
+}
+.app_name span{
+	font-weight: normal;
+	font-size:12px;
+}
+.even {
+  background-color: #eee;
+}
+.odd {
+  background-color: #fff;
+}
+.ver_frame {
+  background: url(itc/status-gray.png) 0 2px transparent no-repeat;
+  padding-left:16px;
+  line-height:1.2em;
+  margin-bottom:4px;
+}
+.status_red {
+  background-image: url(itc/status-red.png);	
+}
+.status_green {
+  background-image: url(itc/status-green.png);	
+}
+.status_orange {
+  background-image: url(itc/status-orange.png);	
+}
+.ver_status {
+  font-weight: bold;
+}
+.caption {
+  background: url(itc/appstore.png) 0 50% no-repeat #c9daef;
+  border-left: 2px solid #4d6077;
+  width:516px;
+  margin:8px;
+  padding: 12px;
+  padding-left:70px;
+}
+.date_span {
+  color: blue;
+}
+.download_stat{
+  font-weight:bold;
+  border-bottom:1px dotted #888;
+  margin-top:16px;
+}
+.stat_table table tr td.units_col {
+  font-weight:bold;
+  padding-left:16px;
+}
+.stat_table table tr td.period {
+  width:220px;
+}
