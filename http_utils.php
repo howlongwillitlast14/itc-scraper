@@ -60,7 +60,6 @@
     global $ch, $need_log_requests, $scrape_options;
     if (!$ch) {
       $ch = curl_init($url);
-      curl_setopt($ch, CURLOPT_STDERR, $fp);
     } else
       curl_setopt($ch, CURLOPT_URL,$url);
     global $last_http_code;

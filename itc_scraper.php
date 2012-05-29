@@ -81,7 +81,8 @@
   function parse_version($cont) {
 //parsing app icon
     if (strpos($cont, "btn-blue-new-version.png")!==false) {
-      echo("add_new_version marker found\n");
+      if ($scrape_options["debug"])
+        echo("add_new_version marker found\n");
       return true;
     }
     $pat='/<div class="app-icon">[\s]*<a href="[^>]*">[\s]*<div style="position: relative; padding: 0">[\s]*<img border="0" width="121" height="121" src="(.*?)" \/>/si';
@@ -346,16 +347,24 @@
     global $scrape_options, $need_log_requests;
     $filenames1 = process_sales_daily($sales_url, $login["appleid"], $scrape_options);
     $filenames2 = process_sales_weekly($sales_url, $login["appleid"], $scrape_options);
-    $filenames = array_merge($filenames1, $filenames2);
+    $filenames = array();
+    if (is_array($filenames1)) 
+      $filenames = array_merge($filenames, $filenames1);
+    if (is_array($filenames2)) 
+      $filenames = array_merge($filenames, $filenames2);
     $need_log_requests = true;
     if (!$filenames1 || !$filenames2)
       warn("Some problems with getting sales reports");
-    process_reports($filenames);
+    else {
+      process_reports($filenames);
+    }
     if ($scrape_options["debug"])
       echo("got reports filenames:\n".implode("\n",$filenames)."\n");
     agregate_sales();
 
     $need_log_requests = false;
+    if ($scrape_options["debug"])
+      echo("signing out. ". $login["appleid"]." is saying good bye\n");
     $res = getUrlContent2($signOutUrl);
     return true;
   }
@@ -370,7 +379,7 @@
 
   if (!defined("BASE_META_DIR")) {
     $curdir=dirname(__FILE__);
-    if ($curdir[strlen($curdir)]!='/') $curdir.='/';
+    if ($curdir[strlen($curdir)-1]!='/') $curdir.='/';
     $curdir.="meta/";
     define("BASE_META_DIR", $curdir);
     echo("BASE_META_DIR is not defined. assigned to script dir ".BASE_META_DIR."\n");
@@ -386,19 +395,25 @@
 
   if (!is_dir(BASE_META_DIR) && !mkdir(BASE_META_DIR))
     die("couldn't access to directory for storing meta data [".BASE_META_DIR."]\n");
+  if (!is_dir(BASE_META_DIR.'/temp') && !mkdir(BASE_META_DIR.'/temp'))
+    die("couldn't access to directory for storing meta data [".BASE_META_DIR."/temp]\n");
 
   $success = false;
   $succ_cnt = 0;
   $total_cnt = 0;
+  $cookie_files = array();
   foreach($logins as $login=>$data) {
     $total_cnt++;
     if ($scrape_options["verbose"])
       echo("processing login $login\n");
+  //specifying location for storing cURL cookies
+    $cookiefile = BASE_META_DIR."temp/itc_cookies".time();  
+    $cookie_files[] = $cookiefile;
     $res = process_login($data);
     if ($res)  {
       $success = true;
       if ($scrape_options["verbose"])
-        echo("processing login $login succeeded\n");
+        echo("\n\n\n**********************\nprocessing login $login succeeded\n");
       $succ_cnt++;
     } else
       if ($scrape_options["verbose"])
@@ -406,5 +421,11 @@
     curl_close($ch);
     $ch = false;
   }
+  if ($scrape_options["verbose"]) {
+    echo("removing temp cookie files\n");
+    foreach($cookie_files as $c)
+      unlink($c);
+  }
+    
   if ($success) file_put_contents(BASE_META_DIR."/last_update_date", time());
   echo("\n*******************\nALL DONE!\nLogins processed: $total_cnt\nLogins Successfully processed: $succ_cnt\n\n");

@@ -28,7 +28,7 @@
 //"apps" array should contain a list of App names you want to watch
 //there may be several iTunesAccount in logins array
   $logins = array(
-    "schwartzcardinal"=>array(
+    "myitunesconnectaccount"=>array(
       "appleid"=>"mydevaccount",
       "password"=>"mysuperduperpass",
       "apps"=>array("AppName1","AppName2")
@@ -39,7 +39,7 @@
   $scrape_options = array(
     "unzipFile" => True,  //whether or not unzip sales reports since they're being downloaded as gz archives
     "verbose" => True,  //If true processing information will be outputted to console
-    "daysToDownload" => 0, //One can specify depth for downloading sales reports
+    "daysToDownload" => 0, //One can specify depth for downloading sales reports. If zero all available reports will be downloaded
     "dateToDownload" => false, //or specify custom date
     "outputFormat" =>  false, //If false then original iTunesConnect filenames will be used
     "overWriteFiles" => False, //If false and particular report has been already downloading then it skipping 

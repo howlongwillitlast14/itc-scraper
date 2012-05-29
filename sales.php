@@ -80,6 +80,7 @@
     if ($options["debug"])
       echo("Accessing sales report web page.\n");
     $urlSalesReport = 'https://reportingitc.apple.com/sales.faces';
+    $urlJsonHolder = 'https://reportingitc.apple.com/jsp/json_holder_sales.faces';
     $res = getUrlContent2($urlSalesReport);
 
     if (!$res)
@@ -92,15 +93,15 @@
       return error("javax.faces.ViewState pattern not found\n");
 	$viewState = $matches[1];
 
-    $pat='/"theForm:j_id_jsp_[0-9]*_38"/si';
+    $pat='/"theForm:j_id_jsp_[0-9]*_51"/si';
     $matches = array();
     preg_match($pat, $res, $matches);
     if (count($matches)==0)
       return error("theForm pattern not found");
 	$dailyName = str_replace('"', '', $matches[0]);
-    $ajaxName = str_replace('_38', '_2', $dailyName);
-    $dateName = str_replace('_38', '_8', $dailyName);
-    $selectName = str_replace('_38', '_32', $dailyName);
+    $ajaxName = str_replace('_51', '_2', $dailyName);
+    $dateName = str_replace('_51', '_8', $dailyName);
+    $selectName = str_replace('_51', ($reptype=='daily')?'29':'_10', $dailyName);
     # Get the form field names needed to download the report.
     if ($options["debug"]) {
       echo("viewState: $viewState\n");
@@ -163,7 +164,10 @@
     global $last_http_headers;
 
     $rep_filenames = scandir(BASE_META_DIR."/salesreports/$appleid/$reptype/");
+    $ccnt=0;
     foreach($reportDates as $downloadReportDate) {
+      $ccnt++;
+//        if ($ccnt++>2) break;
         # Set the date within the web page.
         $dateString = date('m/d/Y', $downloadReportDate);
         
@@ -188,35 +192,72 @@
                   }
 	    }
             if ($options["debug"])
-                echo("Downloading report for:  $dateString\n");
+                echo("Downloading report for:  $dateString ccnt=$ccnt\n");
+
+/*            if ($options["debug"])
+              echo("trying to get json_holder_sales.faces\n");
+            $webFormSalesReportData = urllib_urlencode(array(
+              'dtValue'=>$dateString ,
+              'dateType'=>($reptype=='daily'?"D":"W")
+            )); */
+
+            $res = getUrlContent2($urlJsonHolder.$webFormSalesReportData);
+            if (!$res) {
+              warn("problems with getting json holder sales for $dateString");
+              continue;
+            }
+//            file_put_contents("meta/jsonholder_$ccnt.html", $res);
 
             if ($reptype=='daily')
               $webFormSalesReportData = urllib_urlencode(array(
                 'AJAXREQUEST'=>$ajaxName, 
-                'theForm'=>'theForm', 
-                'theForm:xyz'=>'notnormal', 
-                'theForm:vendorType'=>'Y', 
-                'theForm:datePickerSourceSelectElementSales'=>$dateString, 
+                'theForm' => 'theFormc',
+                'theForm:vendorLogin' => '',
+                'theForm:arrayLength' => '1',
+                'theForm:userType' => 'notnormal',
+                'theForm:vendorType' => 'Y',
+                'theForm:optInVar' => 'A',
+                'theForm:dateType' => 'D',
+                'theForm:prodtypesel' => 'iOS',
+                'theForm:subprodsel' => 'Free Apps',
+                'theForm:subprodlabel' => 'freeAppLabel',
+                'theForm:contentType' => 'iOS',
+                'theForm:contentSubType' => 'Free Apps',
+                'theForm:optInVarRender' => 'false',
+                'theForm:wklyBool' => 'false',
+                '' => '',
+                'theForm:listVendorHideId' => '',
+                'theForm:defaultVendorSelected' => '',
                 'theForm:datePickerSourceSelectElementSales'=>$dateString, 
                 'theForm:weekPickerSourceSelectElement'=>$dateListAvailableWeeks[0], 
                 'javax.faces.ViewState'=>$viewState, $selectName=>$selectName)
               );
             else
               $webFormSalesReportData = urllib_urlencode(array(
-                'AJAXREQUEST'=>$ajaxName, 
-                'theForm'=>'theForm', 
-                'theForm:xyz'=>'notnormal', 
-                'theForm:vendorType'=>'Y', 
-                'theForm:weekPickerSourceSelectElement'=>$dateString, 
-                'theForm:weekPickerSourceSelectElement'=>$dateString, 
-                'theForm:datePickerSourceSelectElementSales'=>$dateListAvailableWeeks[0], 
-                'javax.faces.ViewState'=>$viewState, 
+                'AJAXREQUEST' => $ajaxName,
+                'theForm' => 'theForm',
+                'theForm:vendorLogin' => '',
+                'theForm:arrayLength' => '1',
+                'theForm:userType' => 'notnormal',
+                'theForm:vendorType' => 'Y',
+                'theForm:optInVar' => 'A',
+                'theForm:dateType' => 'D',
+                'theForm:prodtypesel' => 'iOS',
+                'theForm:subprodsel' => 'Free Apps',
+                'theForm:subprodlabel' => 'freeAppLabel',
+                'theForm:contentType' => 'iOS',
+                'theForm:contentSubType' => 'Free Apps',
+                'theForm:optInVarRender' => 'false',
+                'theForm:wklyBool' => 'false',
+                '' => '',
+                'theForm:datePickerSourceSelectElementSales' => $dateListAvailableWeeks[0],
+                'theForm:weekPickerSourceSelectElement' => $dateString,
+                'theForm:listVendorHideId' => '',
+                'theForm:defaultVendorSelected' => '',
+                'javax.faces.ViewState' => $viewState,
                 $selectName=>$selectName,
-                "theForm:wklyBool"=>"false",
-                "theForm:optInVarRender"=>"false",
-                "theForm:vendorLogin"=>"",
-                "theForm:optInVar"=>"A",
-                "theForm:dateType"=>"W")
+
+                )
               );
 
             $res = getUrlContent2($urlSalesReport.$webFormSalesReportData);
@@ -224,6 +265,7 @@
               warn("problems with getting sales report for $dateString");
               continue;
             }
+//            file_put_contents("meta/ajaxresonse_$ccnt.html", $res);
             $matches = array();
             preg_match('/"javax.faces.ViewState" value="(.*?)"/si', $res, $matches);
             if (count($matches)==0) {
@@ -237,28 +279,50 @@
 
             if ($reptype=='daily')
               $webFormSalesReportData = urllib_urlencode(array(
-                'theForm'=>'theForm', 
-                'theForm:xyz'=>'notnormal', 
-                'theForm:vendorType'=>'Y', 
+                'theForm' => 'theForm',
+                'theForm:vendorLogin' => '',
+                'theForm:arrayLength' => '1',
+                'theForm:userType' => 'notnormal',
+                'theForm:vendorType' => 'Y',
+                'theForm:optInVar' => 'A',
+                'theForm:dateType' => 'D',
+                'theForm:prodtypesel' => 'iOS',
+                'theForm:subprodsel' => 'Free Apps',
+                'theForm:subprodlabel' => 'freeAppLabel',
+                'theForm:contentType' => 'iOS',
+                'theForm:contentSubType' => 'Free Apps',
+                'theForm:optInVarRender' => 'false',
+                'theForm:wklyBool' => 'false',
                 'theForm:datePickerSourceSelectElementSales'=>$dateString, 
                 'theForm:weekPickerSourceSelectElement'=>$dateListAvailableWeeks[0], 
+                'theForm:listVendorHideId' => '',
+                'theForm:defaultVendorSelected' => '',
                 'javax.faces.ViewState'=>$viewState, 
                 'theForm:downloadLabel2'=>'theForm:downloadLabel2')
               );
             else
               $webFormSalesReportData = urllib_urlencode(array(
-                'theForm'=>'theForm', 
-                'theForm:xyz'=>'notnormal', 
-                'theForm:vendorType'=>'Y', 
-                'theForm:datePickerSourceSelectElementSales'=>$dateListAvailableWeeks[0], 
-                'theForm:weekPickerSourceSelectElement'=>$dateString, 
-                'javax.faces.ViewState'=>$viewState, 
-                'theForm:downloadLabel2'=>'theForm:downloadLabel2', 
-                "theForm:wklyBool"=>"false",
-                "theForm:optInVarRender"=>"false",
-                "theForm:vendorLogin"=>"",
-                "theForm:optInVar"=>"A",
-                "theForm:dateType"=>"W")
+                'theForm' => 'theForm',
+                'theForm:vendorLogin' => '',
+                'theForm:arrayLength' => '1',
+                'theForm:userType' => 'notnormal',
+                'theForm:vendorType' => 'Y',
+                'theForm:optInVar' => 'A',
+                'theForm:dateType' => 'W',
+                'theForm:prodtypesel' => 'iOS',
+                'theForm:subprodsel' => 'Free Apps',
+                'theForm:subprodlabel' => 'freeAppLabel',
+                'theForm:contentType' => 'iOS',
+                'theForm:contentSubType' => 'Free Apps',
+                'theForm:optInVarRender' => 'false',
+                'theForm:wklyBool' => 'false',
+                'theForm:datePickerSourceSelectElementSales' => $dateListAvailableWeeks[0],
+                'theForm:weekPickerSourceSelectElement' => $dateString,
+                'theForm:listVendorHideId' => '',
+                'theForm:defaultVendorSelected' => '',
+                'javax.faces.ViewState' => $viewState,
+                'theForm:downloadLabel2' => 'theForm:downloadLabel2'
+                )
               );
 
             if ($options["debug"])
@@ -271,7 +335,7 @@
                   echo("Unable to download this report. skipping\n");
             	continue;
             }
-                    
+//            file_put_contents("meta/".time().".gz", $res);        
                 # Check for the content-disposition. If present then we know we have a 
                 # file to download. If not present then an AttributeError exception is
                 # thrown and we assume the file is not available for download.
