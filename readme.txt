@@ -23,3 +23,7 @@ initial
 ver. 1.1 (29-May-2012)
 Changes in sales.php and itc_scraper.php due to some modifications made by Apple in itunesconnect.apple.com ajax machanisms which 
 has broken sales reports scraping
+
+ver. 1.2 (27-Jul-2012)
+Apple has made certain modification in iTunesConnect web-interface so the parser has become invalid. One regular expression is fixed in 
+itc_scraper.php

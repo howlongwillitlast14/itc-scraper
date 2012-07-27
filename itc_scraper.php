@@ -19,7 +19,7 @@
 //   this software the author can not be responsible.
 //   The use of this software is at the risk of the user.
  
-  error_reporting(0);
+  error_reporting(E_ALL);
 
   include("sales.php");
   include("db_tools.php");
@@ -81,8 +81,7 @@
   function parse_version($cont) {
 //parsing app icon
     if (strpos($cont, "btn-blue-new-version.png")!==false) {
-      if ($scrape_options["debug"])
-        echo("add_new_version marker found\n");
+      echo("add_new_version marker found\n");
       return true;
     }
     $pat='/<div class="app-icon">[\s]*<a href="[^>]*">[\s]*<div style="position: relative; padding: 0">[\s]*<img border="0" width="121" height="121" src="(.*?)" \/>/si';
@@ -316,8 +315,10 @@
 
 //    file_put_contents("mainboard.html", $res);
 
+
 //parsing mainboard page
-    $pat='/<form name="signOutForm" method="post" action="(.*?)">/si';
+//    $pat='/<form name="signOutForm" method="post" action="(.*?)">/si';
+    $pat='/<li class="menu-item sign-out">[\s]*<a style="text-decoration:none; color: Gray;" href="([^"]*)">Sign Out<\/a>[\s]*<\/li>/si';
     $match=preg_match($pat, $res, $matches);
     if (!$match||!is_array($matches)||count($matches)==0)
       return error("Sign out form not found");
@@ -355,9 +356,9 @@
     $need_log_requests = true;
     if (!$filenames1 || !$filenames2)
       warn("Some problems with getting sales reports");
-    else {
+//    else {
       process_reports($filenames);
-    }
+//    }
     if ($scrape_options["debug"])
       echo("got reports filenames:\n".implode("\n",$filenames)."\n");
     agregate_sales();
