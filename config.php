@@ -7,6 +7,12 @@
   define("MAXATTEMPT", 10);
 
 
+//It makes sense to run sales reports scraping just once per day 
+//since they are generated no more than that period
+//parameter should contain hour value in 24 format 
+//  $scrape_sales_at = 14;
+
+
 //If uncomment next line of code and specify second parameter of define function
 //script will save all meta information to that specified directory
 //By default meta is saved to the `meta` dir which is created in the same directory with itc_scraper.php

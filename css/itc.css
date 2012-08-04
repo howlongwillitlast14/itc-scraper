@@ -149,3 +149,14 @@ em {
 .stat_table table tr td.period {
   width:220px;
 }
+#sort_frame{
+  position: absolute;
+  top:10px;
+  left: 480px;
+  font-size:10px;
+}
+#sort_frame select{
+  width: 80px;
+  height:16px;
+  border:1px solid #888;
+}

@@ -27,3 +27,12 @@ has broken sales reports scraping
 ver. 1.2 (27-Jul-2012)
 Apple has made certain modification in iTunesConnect web-interface so the parser has become invalid. One regular expression is fixed in 
 itc_scraper.php
+
+ver. 1.3 (04-Aug-2012)
+Apple has make modifications in 'AppleID or password specified incorrect' which led to even locking itunes account due to series of
+failed sign in attempts.
+Sales report agregation routine was modified to avoid multiple running after each login processing. Now it runs only once in the end 
+of all logins processed
+Intorodicing new config parameter: $scrape_sales_at
+It doesn't make sense to run sales reports scraping on each script launch if you're launching it more than once a day.
+index.php and itc.css was modified. 'Sort by' control was added. 'Sales last updated' was added

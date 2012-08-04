@@ -56,6 +56,7 @@
     global $scrape_options;
     if ($scrape_options["debug"])
       echo("processign reports (".count($filenames).")\n");
+    $res = array();
     foreach($filenames as $f) {
       $cont = file_get_contents($f);
       if (!$f) {
@@ -68,8 +69,9 @@
         $columns[$i] = ":".trim(str_replace(" ","",$columns[$i]));
       for ($i=1,$c=count($cont);$i<$c;$i++)
         if (trim($cont[$i])!='')
-          process_report_to_db($columns, explode("	", $cont[$i]));
+          $res[] = process_report_to_db($columns, explode("	", $cont[$i]));
     }
+    return array_unique($res);
   }
 
 
@@ -187,7 +189,7 @@
     if ($scrape_options["verbose"])
       echo("parsed memo:\nsku: $sku\nbundle_id: $bundle_id\napple_id: $apple_id\napp_type: $app_type\ndefault language: $lang\n");
 
-    $pat='/<td class="value"><a href="(.*?)">View in App Store[\s]*<\/a><\/td>/si';
+    $pat='/<td class="value"><a target="_blank" href="(.*?)">View in App Store[\s]*<\/a><\/td>/si';
     $match=preg_match($pat, $res, $matches);
     if (!$match||!is_array($matches)||count($matches)==0)
       return error("Failed to parse app page: Appstore link not found");
@@ -240,8 +242,22 @@
         "current_version"=>$ver1,
         "new_version"=>$ver2
     );
-
-    $res = file_put_contents(BASE_META_DIR."/app_$appid/appmeta.dat",serialize($obj));
+    $fn = BASE_META_DIR."/app_$appid/appmeta.dat";
+    if (file_exists($fn)) {
+      $cont = file_get_contents($fn);
+      if ($cont) {
+        $row = unserialize($cont);
+        if ($row) {
+          $obj["stat_max_report_date"] = $row["stat_max_report_date"];
+          $obj["stat_min_report_date"] = $row["stat_min_report_date"];
+          $obj["stat_last_day"] = $row["stat_last_day"];
+          $obj["stat_last_month"] = $row["stat_last_month"];
+          $obj["stat_whole_period"] = $row["stat_whole_period"];
+        }
+      }
+    }
+      
+    $res = file_put_contents($fn,serialize($obj));
     $res=get_icons($appid, $ver1, $ver2);
     process_app_to_db($obj);
     if (!$res)
@@ -294,12 +310,11 @@
     $res = getUrlContent2($auth_url, array("theAccountName"=>$login["appleid"], "theAccountPW"=>$login["password"]));
     if (!$res)
       return error("failed to perform auth");
-    if (strpos($res,"Your Apple ID or password was entered incorrectly")!==false)
+    if (strpos($res,"Your AppleID or password was entered incorrectly")!==false)
       return error("auth is bad");
 
     if ($scrape_options["debug"])
       echo("auth OK\n");
-
 //scraping mainboard page
 
     $pat='/<a href="([^>]*)">[\s]*<img border="0" onclick="" class="customActionButton" src="https:\/\/itc.mzstatic.com\/itc\/images\/btn-continue.png"[\s]*\/>[\s]*<\/a>/si';
@@ -345,6 +360,7 @@
 
 
 //scraping sales report
+    if (!NEED_SALES) return true;
     global $scrape_options, $need_log_requests;
     $filenames1 = process_sales_daily($sales_url, $login["appleid"], $scrape_options);
     $filenames2 = process_sales_weekly($sales_url, $login["appleid"], $scrape_options);
@@ -356,17 +372,15 @@
     $need_log_requests = true;
     if (!$filenames1 || !$filenames2)
       warn("Some problems with getting sales reports");
-//    else {
-      process_reports($filenames);
-//    }
+    $app_ids=process_reports($filenames);
     if ($scrape_options["debug"])
       echo("got reports filenames:\n".implode("\n",$filenames)."\n");
-    agregate_sales();
-
+//    if ($app_ids)
     $need_log_requests = false;
     if ($scrape_options["debug"])
       echo("signing out. ". $login["appleid"]." is saying good bye\n");
     $res = getUrlContent2($signOutUrl);
+    file_put_contents(BASE_META_DIR."/last_rep_update_date", time());
     return true;
   }
 
@@ -385,6 +399,14 @@
     define("BASE_META_DIR", $curdir);
     echo("BASE_META_DIR is not defined. assigned to script dir ".BASE_META_DIR."\n");
   }
+
+  if (isset($scrape_sales_at) && (int)date("H")!=$scrape_sales_at) {
+    if ($scrape_options["debug"]) 
+      echo("skipping sales report scraping - it's not a time (need wait for $scrape_sales_at)\n");
+    define("NEED_SALES", false);
+  } else
+    define("NEED_SALES", true);
+
   $conn = get_connect();
   if (!$conn) 
     die("DB connection failed to established\n");
@@ -418,10 +440,11 @@
       $succ_cnt++;
     } else
       if ($scrape_options["verbose"])
-        echo("processing login $login failed\n");
+        die("processing login $login failed\n");
     curl_close($ch);
     $ch = false;
   }
+  agregate_sales();
   if ($scrape_options["verbose"]) {
     echo("removing temp cookie files\n");
     foreach($cookie_files as $c)

@@ -52,6 +52,7 @@ function sec2hms ($sec, $padHours = false) {
 
 function process_app_to_db ($app) {
   global $conn;
+  $ids = array();
   $sql = "
 call sp_itc_process_app(
 :Title,
@@ -109,13 +110,17 @@ function process_report_to_db($columns, $values) {
   global $conn;
   $sql = "call sp_itc_process_report(".implode(",",$columns).");";
   $vals = array();
-  for ($i=0,$c=count($columns);$i<$c;$i++)
+  $appid = false;
+  for ($i=0,$c=count($columns);$i<$c;$i++) {
     $vals[$columns[$i]] = trim($values[$i]);
+    if ($columns[$i] == ":AppleIdentifier")
+      $appid = $values[$i];
+  }
   $vals[":BeginDate"] = DMYToTime($vals[":BeginDate"]);
   $vals[":EndDate"] = DMYToTime($vals[":EndDate"]);
 
   if (isset($conn) && $conn)
-    return execSQL($conn, $sql, $vals);
+    return execSQL($conn, $sql, $vals)?$appid:false;
   else
     return false;
 }
@@ -132,8 +137,11 @@ function agregate_sales() {
     return error("No apss were found.\n");
 
   $cnt = 0;
-  foreach($dir as $f) {	
+  $weekbeg = mktime(0, 0, 0, date('m'), date('d'), date('Y')) - ((date('N')-1)*24*60*60);
+//  echo("agregating apps ".implode(",",$app_ids)."\n");
+  foreach($dir as $f) {
     if (substr($f,0,4) != "app_") continue;
+//    if (!$apple_id) continue;
     $app = file_get_contents(BASE_META_DIR."$f/appmeta.dat");
     if (!$app) continue;
     $app = unserialize($app);
@@ -149,7 +157,7 @@ select
 (select min(BeginDate) from itc_sales where AppleIdentifier=:apple_id) as stat_min_report_date,
 (select sum(units) from itc_sales where AppleIdentifier=:apple_id and BeginDate= EndDate and BeginDate = ifnull((select max(BeginDate) from itc_sales where AppleIdentifier=:apple_id), 0) group by AppleIdentifier) stat_last_day,
 (select sum(units) from itc_sales where AppleIdentifier=:apple_id and BeginDate= EndDate and BeginDate > unix_timestamp() - 30 * 24 * 60 * 60 group by AppleIdentifier) stat_last_month,
-(select sum(units) from itc_sales where AppleIdentifier=:apple_id and BeginDate<> EndDate group by AppleIdentifier) stat_whole_period
+(select sum(units) from itc_sales where AppleIdentifier=:apple_id and (BeginDate<>EndDate or (BeginDate=EndDate and BeginDate>=$weekbeg)) group by AppleIdentifier) stat_whole_period
 from
 dual    
     ", array(":apple_id"=>$apple_id));
