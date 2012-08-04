@@ -1,4 +1,5 @@
 <?php 
+  date_default_timezone_set('Europe/Moscow');
   function showApp ($app, $rowcl) {
 	$appid = $app["appid"];
 ?>
@@ -61,25 +62,47 @@
 
 <html xmlns="http://www.w3.org/1999/xhtml">
 <head profile="http://gmpg.org/xfn/11">
-	<meta http-equiv="Content-Type" content="text/html; charset=Windows-1251" />
-	<meta http-equiv="X-UA-Compatible" content="IE=EmulateIE7" />
-
-	<title>iTunesConnect info</title>
-
-	<!-- style START -->
-	<!-- default style -->
-        <link href="css/style.css" rel="stylesheet" type="text/css" media="screen" />
-        <link href="css/itc.css" rel="stylesheet" type="text/css" media="screen" />
+ <meta http-equiv="Content-Type" content="text/html; charset=Windows-1251" />
+ <meta http-equiv="X-UA-Compatible" content="IE=EmulateIE7" />
+ <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"/> 
+ <title>iTunesConnect info</title>
+ <link href="css/itc.css?r=3" rel="stylesheet" type="text/css" media="screen" />
 </head>
 
 
 <body>
 <div class="caption">
  <h1>iTunesConnect stats</h1>
- <span>Last updated: <strong><?php
+ <table cellpadding='0' cellspacing='0' border='0'>
+  <tr>
+    <td>Last updated:</td>
+    <td class='dt_val'><?php
    $date = file_get_contents("meta/last_update_date");
-   echo($date?date("d-M-Y h:i", $date):"n/a");
- ?></strong></span>
+   echo($date?date("d-M-Y H:i", $date):"n/a");
+ ?></td>
+  </tr>
+   <td>Sales last updated:</td>
+   <td class='dt_val'><?php
+   $date = file_get_contents("meta/sales_last_update_date");
+   echo($date?date("d-M-Y H:i", $date):"n/a");
+ ?></td>
+  </tr>
+ </table>
+ <div id='sort_frame'>
+ <form method='post'>
+<?php
+  $options = array("default","name","release date", "downloads");
+  $sort = isset($_POST["sort"])?$_POST["sort"]:"default";
+?>
+   Sort by:
+   <select name='sort' onchange='this.form.submit();'>
+<?php
+   foreach($options as $o) 
+    echo("<option ".($o==$sort?"selected":"")." value='$o'>$o</option>");
+?>
+   </select>
+  </form>
+ </div>
 </div>
 <div class='apps'>
 <?php
@@ -88,15 +111,27 @@
     echo("No apss were found.");
   else {
     $cnt = 0;
+    $apps = array();
+    $sort_ar = array();
     foreach($dir as $f) {	
       if (substr($f,0,4) != "app_") continue;
       $app = file_get_contents("meta/$f/appmeta.dat");
       if (!$app) continue;
       $app = unserialize($app);
       if (!$app) continue;
-      //echo($app["app_name"]."<br/>");
+      switch($sort) {
+        case "name": $sort_ar[$app["apple_id"]] = $app["app_name"];break;
+        case "downloads": $sort_ar[$app["apple_id"]] = $app["stat_whole_period"];break;
+        case "release date": $sort_ar[$app["apple_id"]] = $app["current_version"]["date_released"];break;
+        case "default": $sort_ar[$app["apple_id"]] = $app["apple_id"];break;
+      }
+      $apps[$app["apple_id"]] = $app;
+    }
+    if ($sort!='default') 
+      $r=asort($sort_ar);
+    foreach($sort_ar as $app_id=>$val) {
       $rowcl = ($cnt++%2==0)?"even":"odd";
-      showApp($app, $rowcl);
+      showApp($apps[$app_id], $rowcl);
     }
   }
 ?>

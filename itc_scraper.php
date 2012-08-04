@@ -380,7 +380,6 @@
     if ($scrape_options["debug"])
       echo("signing out. ". $login["appleid"]." is saying good bye\n");
     $res = getUrlContent2($signOutUrl);
-    file_put_contents(BASE_META_DIR."/last_rep_update_date", time());
     return true;
   }
 
@@ -451,5 +450,9 @@
       unlink($c);
   }
     
-  if ($success) file_put_contents(BASE_META_DIR."/last_update_date", time());
+  if ($success) {
+    file_put_contents(BASE_META_DIR."/last_update_date", time());
+    if (NEED_SALES)
+      file_put_contents(BASE_META_DIR."/sales_last_update_date", time());
+  }
   echo("\n*******************\nALL DONE!\nLogins processed: $total_cnt\nLogins Successfully processed: $succ_cnt\n\n");
