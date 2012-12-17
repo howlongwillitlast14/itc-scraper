@@ -36,3 +36,9 @@ of all logins processed
 Intorodicing new config parameter: $scrape_sales_at
 It doesn't make sense to run sales reports scraping on each script launch if you're launching it more than once a day.
 index.php and itc.css was modified. 'Sort by' control was added. 'Sales last updated' was added
+
+ver. 1.4 (14-Dec-2012)
+itc_scraper.php: Manage your application page parsing fixed. Previously parsed loaded page of recent used apps which contained 
+incomplete list of apps. Now parser loads See all page instead - it contains complete applications list
+index.php: footer block added with Total figure
+db_tools.php: total installs stat was corrected

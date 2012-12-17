@@ -156,7 +156,7 @@ select
 (select max(BeginDate) from itc_sales where AppleIdentifier=:apple_id) as stat_max_report_date,
 (select min(BeginDate) from itc_sales where AppleIdentifier=:apple_id) as stat_min_report_date,
 (select sum(units) from itc_sales where AppleIdentifier=:apple_id and BeginDate= EndDate and BeginDate = ifnull((select max(BeginDate) from itc_sales where AppleIdentifier=:apple_id), 0) group by AppleIdentifier) stat_last_day,
-(select sum(units) from itc_sales where AppleIdentifier=:apple_id and BeginDate= EndDate and BeginDate > unix_timestamp() - 30 * 24 * 60 * 60 group by AppleIdentifier) stat_last_month,
+(select sum(units) from itc_sales where AppleIdentifier=:apple_id and BeginDate<>EndDate and BeginDate > $weekbeg - 30 * 24 * 60 * 60 and EndDate<$weekbeg group by AppleIdentifier) stat_last_month,
 (select sum(units) from itc_sales where AppleIdentifier=:apple_id and (BeginDate<>EndDate or (BeginDate=EndDate and BeginDate>=$weekbeg)) group by AppleIdentifier) stat_whole_period
 from
 dual    

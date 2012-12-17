@@ -225,8 +225,8 @@
       return error("parse Current version failed");
     if ($str2) {
       $ver2= parse_version($str2);
-      if (!$ver2)
-        return error("parse New version failed");
+//      if (!$ver2)
+//        return error("parse New version failed");
     } else 
       $ver2 = false;
     if (!is_dir(BASE_META_DIR."/app_$appid")&&!mkdir(BASE_META_DIR."/app_$appid"))
@@ -289,6 +289,34 @@
 
 
 
+//function fetches apps array from config.php for current login and runs scraping data about each app
+//this version uses See All page content which sligthly differs by scructure
+  function process_apps_seeall($see_all_url, $login) {
+  
+    $res = getUrlContent2($see_all_url);
+    if (!$res)
+      return error("Couldn't get ManageYourApp page");
+
+
+//parse manageapps page. there may be a few apps.
+//    $pat='/<div class="movieTitle app-search-recent" align="center">[\s]*<a title="(.*?)" href="([^>]*)">/si';
+    $pat='/<div class="software-column-type-col-0 sorted">[\s]*<p>[\s]*<a href="([^>]*)">(.*?)<\/a>[\s]*<p>/si';
+    $match=preg_match_all($pat, $res, $matches);
+    if (!$match||!is_array($matches)||count($matches[1])==0)
+      return error("parsing manageapps page failed");
+    for ($i=0,$c=count($matches[1]);$i<$c;$i++) 
+      if (!in_array($matches[2][$i],$login["apps"])) {
+        echo($matches[2][$i]." app is not in a list of watchable apps. bypassing\n");
+      } else {
+        process_app($matches[2][$i], $matches[1][$i]);
+//         echo("processing ".$matches[2][$i].", ".$matches[1][$i]." \n");
+//    die();
+    }
+  }
+
+
+
+
 //function processes single login from config.php $logins array
 //it calls function for populating data about app and sales reports
   function process_login($login) {
@@ -343,11 +371,25 @@
 //scraping Manage Your Applications
 
     $pat='/<a href="([^>]*)">Manage Your Applications<\/a>/si';
+
+
     $match=preg_match($pat, $res, $matches);
     if (!$match||!is_array($matches)||count($matches)==0)
       return error("Manage your apps pattern not found");
+
     $manage_apps_url = $matches[1];
-    process_apps($manage_apps_url, $login);
+//Getting Manage Your Applications url content
+    $res_sa = getUrlContent2($manage_apps_url);
+    if (!$res_sa) 
+      return error("failed get Manage Your Applications page");
+//Extracting See All page url
+    $pat = '/<a href="([^>]*)">See All/si';
+    $match=preg_match($pat, $res_sa, $matches_sa);
+    if (!$match||!is_array($matches_sa)||count($matches_sa)==0)
+      return error("See All pattern not found");
+
+    $see_all_url = $matches_sa[1];
+    process_apps_seeall($see_all_url, $login);
 
 
     $pat='/<td class="content">[\s]*<a href="(.*?)">[\s]*<b>Sales and Trends<\/b>[\s]*<\/a><br>/si';
