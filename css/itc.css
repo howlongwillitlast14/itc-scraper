@@ -173,3 +173,16 @@ em {
   height:16px;
   border:1px solid #888;
 }
+.total {
+  width:576px;
+  margin:8px;
+  padding: 12px;
+  border-left: 2px solid #4d6077;
+  background:#c9daef;
+  font-weight: bold;
+  font-size:14px;
+}
+.total span {
+  font-size:18px;
+  color:#008;
+}
