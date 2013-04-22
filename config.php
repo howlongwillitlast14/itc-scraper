@@ -37,6 +37,7 @@
     "myitunesconnectaccount"=>array(
       "appleid"=>"mydevaccount",
       "password"=>"mysuperduperpass",
+      "vendorid"=>"myvendornumber", //vendor number can be obtained in Sales Reports section of iTunesConnect portal. example: 82222222
       "apps"=>array("AppName1","AppName2")
     ),
   );

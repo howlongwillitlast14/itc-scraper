@@ -42,3 +42,7 @@ itc_scraper.php: Manage your application page parsing fixed. Previously parsed l
 incomplete list of apps. Now parser loads See all page instead - it contains complete applications list
 index.php: footer block added with Total figure
 db_tools.php: total installs stat was corrected
+
+ver. 1.5 (23-Apr-2013)
+itc_scraper.php: Manage Your Apps pattern has been changed
+sales.php: new sales reports mechanism implemented. now using standard Apple API call reversed from Autoingestion.class

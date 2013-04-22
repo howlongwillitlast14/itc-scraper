@@ -18,7 +18,6 @@
 //   It should not have unexpected results. However if any damage is caused by
 //   this software the author can not be responsible.
 //   The use of this software is at the risk of the user.
- 
   error_reporting(E_ALL);
 
   include("sales.php");
@@ -82,6 +81,8 @@
 
   function parse_version($cont) {
 //parsing app icon
+    echo("parsing version\n");
+    file_put_contents("cont.html",$cont);
     if (strpos($cont, "btn-blue-new-version.png")!==false) {
       echo("add_new_version marker found\n");
       return true;
@@ -93,14 +94,22 @@
     $icon = $matches[1];
     $pat='/<p><label>Version<\/label>(.*?)<\/p>/si';
     preg_match($pat, $cont, $matches);    
-    if (count($matches)==0)
+    if (count($matches)==0) {
+      echo("returning VERSION PATTERN!!!\n");
       return error("Version pattern not found");
+    }
     $version = trim(strip_tags($matches[1]));
     global $scrape_options;
     if ($scrape_options["debug"])
       echo("version: $version\n");
-
-    $pat='/<label>Status<\/label>[\s]*<span class="metadataFieldReadonly">[\s]*<span[^>]*>[\s]*<img class="status-icon" src="\/itc\/images\/status-([a-z]*).png" \/>(.*?)<\/span>/si';
+/*
+  <label>Status</label>
+	         <span class="metadataField metadataFieldReadonly">
+    <span title="Your app version has been approved. Its appearance on the App Store will depend on the availability date that you set on the Rights and Pricing page.">
+        <img class="status-icon" src="/itc/images/status-green.png" /> Ready for Sale 
+    </span>
+*/
+    $pat='/<label>Status<\/label>[\s]*<span class="metadataField metadataFieldReadonly">[\s]*<span[^>]*>[\s]*<img class="status-icon" src="\/itc\/images\/status-([a-z]*).png" \/>(.*?)<\/span>/si';
     preg_match($pat, $cont, $matches);    
     if (count($matches)==0)
       return error("Status pattern not found");
@@ -165,7 +174,7 @@
 //Attributes like SKU, BundleID, AppleID, Type, Default Language
 //Information about app versions etc
 
-  function process_app($app_name, $app_link) {
+  function process_app($app_name, $app_link, $app_group="default") {
     global $scrape_options;
     if ($scrape_options["verbose"])
       echo("processing app $app_name\ngetting app page $app_link\n");
@@ -234,6 +243,7 @@
     $obj = array(
         "app_name"=>$app_name,
         "apple_id"=>$apple_id,
+        "app_group"=>$app_group,
         "sku" => $sku,
         "bundle_id" => $bundle_id,
         "app_type" => $app_type,
@@ -268,7 +278,6 @@
 
 //function fetches apps array from config.php for current login and runs scraping data about each app
   function process_apps($manage_apps_url, $login) {
-  
     $res = getUrlContent2($manage_apps_url);
     if (!$res)
       return error("Couldn't get ManageYourApp page");
@@ -282,7 +291,7 @@
       if (!in_array($matches[1][$i],$login["apps"])) {
         echo($matches[1][$i]." app is not in a list of watchable apps. bypassing\n");
       } else
-        process_app($matches[1][$i], $matches[2][$i]);
+        process_app($matches[1][$i], $matches[2][$i],$login["group"]);
 
   }
 
@@ -292,15 +301,14 @@
 //function fetches apps array from config.php for current login and runs scraping data about each app
 //this version uses See All page content which sligthly differs by scructure
   function process_apps_seeall($see_all_url, $login) {
-  
+    echo ("Getting SEE ALL page\n");
     $res = getUrlContent2($see_all_url);
     if (!$res)
       return error("Couldn't get ManageYourApp page");
 
 
 //parse manageapps page. there may be a few apps.
-//    $pat='/<div class="movieTitle app-search-recent" align="center">[\s]*<a title="(.*?)" href="([^>]*)">/si';
-    $pat='/<div class="software-column-type-col-0 sorted">[\s]*<p>[\s]*<a href="([^>]*)">(.*?)<\/a>[\s]*<p>/si';
+    $pat='/<div class="software-column-type-col-0[^"]*">[\s]*<p>[\s]*<a href="([^>]*)">(.*?)<\/a>[\s]*<p>/si';
     $match=preg_match_all($pat, $res, $matches);
     if (!$match||!is_array($matches)||count($matches[1])==0)
       return error("parsing manageapps page failed");
@@ -308,7 +316,7 @@
       if (!in_array($matches[2][$i],$login["apps"])) {
         echo($matches[2][$i]." app is not in a list of watchable apps. bypassing\n");
       } else {
-        process_app($matches[2][$i], $matches[1][$i]);
+        process_app($matches[2][$i], $matches[1][$i], $login["group"]);
 //         echo("processing ".$matches[2][$i].", ".$matches[1][$i]." \n");
 //    die();
     }
@@ -320,7 +328,7 @@
 //function processes single login from config.php $logins array
 //it calls function for populating data about app and sales reports
   function process_login($login) {
-
+    global $scrape_options;
     $res = getUrlContent2("/WebObjects/iTunesConnect.woa");
     if (!$res) 
       return error("getting start page failed");
@@ -331,7 +339,6 @@
       return error("parsing auth url failed");
     $auth_url = $matches[1];
 
-    global $scrape_options;
     if ($scrape_options["debug"])
       echo("ok. auth url: $auth_url\n");
 
@@ -370,7 +377,7 @@
       echo("signOutUrl=$signOutUrl\n");
 //scraping Manage Your Applications
 
-    $pat='/<a href="([^>]*)">Manage Your Applications<\/a>/si';
+    $pat='/<a href="([^>]*)">Manage Your Apps<\/a>/si';
 
 
     $match=preg_match($pat, $res, $matches);
@@ -391,8 +398,9 @@
     $see_all_url = $matches_sa[1];
     process_apps_seeall($see_all_url, $login);
 
-
-    $pat='/<td class="content">[\s]*<a href="(.*?)">[\s]*<b>Sales and Trends<\/b>[\s]*<\/a><br>/si';
+//deprecated pattern for sales and trends 07.03.2013 - html layout changed
+//    $pat='/<td class="content">[\s]*<a href="(.*?)">[\s]*<b>Sales and Trends<\/b>[\s]*<\/a><br>/si';
+    $pat='/<h2><a href="(.*?)">Sales and Trends<\/a><\/h2>/si';
     $match=preg_match($pat, $res, $matches);
     if (!$match||!is_array($matches)||count($matches)==0)
       return error("Sales and trends pattern not found");
@@ -400,12 +408,11 @@
     if ($scrape_options["debug"])
       echo("sales url: $sales_url\n");
 
-
 //scraping sales report
-    if (!NEED_SALES) return true;
+//    if (!NEED_SALES) return true;
     global $scrape_options, $need_log_requests;
-    $filenames1 = process_sales_daily($sales_url, $login["appleid"], $scrape_options);
-    $filenames2 = process_sales_weekly($sales_url, $login["appleid"], $scrape_options);
+    $filenames1 = process_sales_daily($login, $scrape_options);
+    $filenames2 = process_sales_weekly($login, $scrape_options);
     $filenames = array();
     if (is_array($filenames1)) 
       $filenames = array_merge($filenames, $filenames1);
@@ -443,7 +450,7 @@
 
   if (isset($scrape_sales_at) && (int)date("H")!=$scrape_sales_at) {
     if ($scrape_options["debug"]) 
-      echo("skipping sales report scraping - it's not a time (need wait for $scrape_sales_at)\n");
+      echo("skipping sales report scraping - it's not a time (need wait for $scrape_sales_at, it's only ".(int)date("H")." now)\n");
     define("NEED_SALES", false);
   } else
     define("NEED_SALES", true);
@@ -453,6 +460,7 @@
     die("DB connection failed to established\n");
   else
     echo("DB connection established\n");
+
 
   if (!isset($logins)||!is_array($logins))
     die('nothing to scrape');
@@ -481,7 +489,7 @@
       $succ_cnt++;
     } else
       if ($scrape_options["verbose"])
-        die("processing login $login failed\n");
+        echo("processing login $login failed\n");
     curl_close($ch);
     $ch = false;
   }
